@@ -1,0 +1,16 @@
+pkgbase = xpc3-gui
+	pkgdesc = Xalether Privacy Chain v3 - Cascade File and Folder Encryption
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/mibuchik/XPC-3
+	arch = x86_64
+	license = custom:Xalether Proprietary
+	makedepends = git
+	makedepends = make
+	makedepends = gcc
+	depends = qt5-base
+	depends = openssl
+	source = git+https://github.com/mibuchik/XPC-3.git
+	md5sums = SKIP
+
+pkgname = xpc3-gui
