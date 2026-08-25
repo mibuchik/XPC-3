@@ -12,9 +12,9 @@ CryptoWorker::CryptoWorker(bool isEncrypt, const QString &inFile, const QString 
     : QThread(parent), m_isEncrypt(isEncrypt), m_inFile(inFile), m_outFile(outFile), m_password(password) {}
 
 void CryptoWorker::run() {
-    emit logMessage(QString("🚀 %1 process started...").arg(m_isEncrypt ? "Encryption" : "Decryption"));
-    emit logMessage(QString("   Input: %1").arg(m_inFile));
-    emit logMessage(QString("   Output: %1").arg(m_outFile));
+    emit logMessage(tr("🚀 %1 process started...").arg(m_isEncrypt ? "Encryption" : "Decryption"));
+    emit logMessage(tr("   Input: %1").arg(m_inFile));
+    emit logMessage(tr("   Output: %1").arg(m_outFile));
 
     QFileInfo inInfo(m_inFile);
     bool isDirectoryInput = inInfo.isDir();
@@ -66,25 +66,25 @@ void CryptoWorker::run() {
         if (m_isEncrypt) {
             if (isDirectoryInput) {
                 if (QDir(m_inFile).removeRecursively()) {
-                    emit logMessage(QString("🗑️ Source directory deleted: %1").arg(m_inFile));
+                    emit logMessage(tr("🗑️ Source directory deleted: %1").arg(m_inFile));
                 } else {
-                    emit logMessage(QString("⚠️ Could not delete source directory: %1").arg(m_inFile));
+                    emit logMessage(tr("⚠️ Could not delete source directory: %1").arg(m_inFile));
                 }
             } else {
                 if (m_inFile != m_outFile) {
                     if (QFile::remove(m_inFile)) {
-                        emit logMessage(QString("🗑️ Source file deleted: %1").arg(m_inFile));
+                        emit logMessage(tr("🗑️ Source file deleted: %1").arg(m_inFile));
                     } else {
-                        emit logMessage(QString("⚠️ Could not delete source file: %1").arg(m_inFile));
+                        emit logMessage(tr("⚠️ Could not delete source file: %1").arg(m_inFile));
                     }
                 }
             }
-            emit workFinished(true, QString("Encryption succeeded!\nOutput saved to: %1\nSource deleted.").arg(m_outFile));
+            emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1\nSource deleted.").arg(m_outFile));
         } else {
             // Decryption succeeded
             if (m_inFile != m_outFile) {
                 if (QFile::remove(m_inFile)) {
-                    emit logMessage(QString("🗑️ Encrypted source file deleted: %1").arg(m_inFile));
+                    emit logMessage(tr("🗑️ Encrypted source file deleted: %1").arg(m_inFile));
                 }
             }
 
@@ -104,15 +104,15 @@ void CryptoWorker::run() {
 
                 if (extractProc.exitCode() == 0) {
                     QFile::remove(m_outFile);
-                    emit logMessage(QString("📂 Directory extracted successfully to: %1").arg(destParentDir));
-                    emit workFinished(true, QString("Decryption succeeded!\nDirectory extracted to: %1").arg(destParentDir));
+                    emit logMessage(tr("📂 Directory extracted successfully to: %1").arg(destParentDir));
+                    emit workFinished(true, tr("Decryption succeeded!\nDirectory extracted to: %1").arg(destParentDir));
                     return;
                 } else {
                     emit logMessage("⚠️ Failed to auto-extract tar archive, keeping output file.");
                 }
             }
 
-            emit workFinished(true, QString("Decryption succeeded!\nFile saved to: %1").arg(m_outFile));
+            emit workFinished(true, tr("Decryption succeeded!\nFile saved to: %1").arg(m_outFile));
         }
     } else {
         QString errMsg;
@@ -134,10 +134,10 @@ void CryptoWorker::run() {
                 errMsg = "Decompression failed (corrupted payload).";
                 break;
             default:
-                errMsg = QString("Cryptographic failure (Error code %1)").arg(res);
+                errMsg = tr("Cryptographic failure (Error code %1)").arg(res);
                 break;
         }
-        emit logMessage(QString("❌ Error: %1").arg(errMsg));
+        emit logMessage(tr("❌ Error: %1").arg(errMsg));
         emit workFinished(false, errMsg);
     }
 }

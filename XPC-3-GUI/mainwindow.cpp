@@ -18,7 +18,7 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isApplyingTheme(false), m_worker(nullptr) {
-    setWindowTitle("XPC-3");
+    setWindowTitle(tr("XPC-3"));
     setWindowIcon(QIcon(":/icon.png"));
     resize(740, 690);
     setAcceptDrops(true);
@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     QPixmap logoPix(":/icon.png");
     logoImgLabel->setPixmap(logoPix.scaled(28, 28, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
-    QLabel *titleLabel = new QLabel("XPC-3", headerCard);
+    QLabel *titleLabel = new QLabel(tr("XPC-3"), headerCard);
     titleLabel->setObjectName("titleLabel");
     titleLabel->setStyleSheet("font-size: 20px; font-weight: 700; letter-spacing: -0.5px;");
 
@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     titleRow->addWidget(titleLabel);
     titleRow->addStretch();
 
-    QLabel *descLabel = new QLabel("Production-grade triple cascade file encryption powered by 64 MiB Memory-Hard XKDF.", headerCard);
+    QLabel *descLabel = new QLabel(tr("Production-grade triple cascade file encryption powered by 64 MiB Memory-Hard XKDF."), headerCard);
     descLabel->setObjectName("descLabel");
     descLabel->setStyleSheet("font-size: 13px; font-weight: 400;");
 
@@ -87,7 +87,7 @@ MainWindow::MainWindow(QWidget *parent)
     encLayout->setContentsMargins(20, 20, 20, 20);
     encLayout->setSpacing(14);
 
-    m_encDropZone = new QLabel("Drag & drop file or folder here, or click to browse", encTab);
+    m_encDropZone = new QLabel(tr("Drag & drop file or folder here, or click to browse"), encTab);
     m_encDropZone->setObjectName("shadcnDropZone");
     m_encDropZone->setAlignment(Qt::AlignCenter);
     m_encDropZone->setFixedHeight(80);
@@ -95,12 +95,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     QHBoxLayout *encInLayout = new QHBoxLayout();
     m_encInPath = new QLineEdit(encTab);
-    m_encInPath->setPlaceholderText("Select file or folder to encrypt...");
-    QPushButton *btnEncBrowse = new QPushButton("File", encTab);
+    m_encInPath->setPlaceholderText(tr("Select file or folder to encrypt..."));
+    QPushButton *btnEncBrowse = new QPushButton(tr("File"), encTab);
     btnEncBrowse->setObjectName("secondaryButton");
     btnEncBrowse->setCursor(Qt::PointingHandCursor);
 
-    QPushButton *btnEncFolderBrowse = new QPushButton("Folder", encTab);
+    QPushButton *btnEncFolderBrowse = new QPushButton(tr("Folder"), encTab);
     btnEncFolderBrowse->setObjectName("secondaryButton");
     btnEncFolderBrowse->setCursor(Qt::PointingHandCursor);
 
@@ -109,7 +109,7 @@ MainWindow::MainWindow(QWidget *parent)
     encInLayout->addWidget(btnEncFolderBrowse);
     encLayout->addLayout(encInLayout);
 
-    m_encOutHintLabel = new QLabel("Destination: (select file or folder first)", encTab);
+    m_encOutHintLabel = new QLabel(tr("Destination: (select file or folder first)"), encTab);
     m_encOutHintLabel->setObjectName("hintLabel");
     m_encOutHintLabel->setStyleSheet("font-size: 12px; font-weight: 500; font-family: monospace;");
     encLayout->addWidget(m_encOutHintLabel);
@@ -117,8 +117,8 @@ MainWindow::MainWindow(QWidget *parent)
     QHBoxLayout *encPassLayout = new QHBoxLayout();
     m_encPassword = new QLineEdit(encTab);
     m_encPassword->setEchoMode(QLineEdit::Password);
-    m_encPassword->setPlaceholderText("Enter secret passphrase...");
-    m_encShowPassBtn = new QPushButton("👁", encTab);
+    m_encPassword->setPlaceholderText(tr("Enter secret passphrase..."));
+    m_encShowPassBtn = new QPushButton(tr("👁"), encTab);
     m_encShowPassBtn->setObjectName("ghostButton");
     m_encShowPassBtn->setFixedWidth(40);
     m_encShowPassBtn->setCursor(Qt::PointingHandCursor);
@@ -126,13 +126,13 @@ MainWindow::MainWindow(QWidget *parent)
     encPassLayout->addWidget(m_encShowPassBtn);
     encLayout->addLayout(encPassLayout);
 
-    m_encBtn = new QPushButton("Encrypt Target", encTab);
+    m_encBtn = new QPushButton(tr("Encrypt Target"), encTab);
     m_encBtn->setObjectName("primaryButton");
     m_encBtn->setFixedHeight(42);
     m_encBtn->setCursor(Qt::PointingHandCursor);
     encLayout->addWidget(m_encBtn);
 
-    m_tabWidget->addTab(encTab, "Encrypt");
+    m_tabWidget->addTab(encTab, tr("Encrypt"));
 
     // --- DECRYPT TAB ---
     QWidget *decTab = new QWidget();
@@ -140,7 +140,7 @@ MainWindow::MainWindow(QWidget *parent)
     decLayout->setContentsMargins(20, 20, 20, 20);
     decLayout->setSpacing(14);
 
-    m_decDropZone = new QLabel("Drag and drop .xpc file here, or click to browse", decTab);
+    m_decDropZone = new QLabel(tr("Drag and drop .xpc file here, or click to browse"), decTab);
     m_decDropZone->setObjectName("shadcnDropZone");
     m_decDropZone->setAlignment(Qt::AlignCenter);
     m_decDropZone->setFixedHeight(80);
@@ -148,15 +148,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     QHBoxLayout *decInLayout = new QHBoxLayout();
     m_decInPath = new QLineEdit(decTab);
-    m_decInPath->setPlaceholderText("Select .xpc file to decrypt...");
-    QPushButton *btnDecBrowse = new QPushButton("Browse", decTab);
+    m_decInPath->setPlaceholderText(tr("Select .xpc file to decrypt..."));
+    QPushButton *btnDecBrowse = new QPushButton(tr("Browse"), decTab);
     btnDecBrowse->setObjectName("secondaryButton");
     btnDecBrowse->setCursor(Qt::PointingHandCursor);
     decInLayout->addWidget(m_decInPath);
     decInLayout->addWidget(btnDecBrowse);
     decLayout->addLayout(decInLayout);
 
-    m_decOutHintLabel = new QLabel("Destination: (select .xpc file first)", decTab);
+    m_decOutHintLabel = new QLabel(tr("Destination: (select .xpc file first)"), decTab);
     m_decOutHintLabel->setObjectName("hintLabel");
     m_decOutHintLabel->setStyleSheet("font-size: 12px; font-weight: 500; font-family: monospace;");
     decLayout->addWidget(m_decOutHintLabel);
@@ -164,8 +164,8 @@ MainWindow::MainWindow(QWidget *parent)
     QHBoxLayout *decPassLayout = new QHBoxLayout();
     m_decPassword = new QLineEdit(decTab);
     m_decPassword->setEchoMode(QLineEdit::Password);
-    m_decPassword->setPlaceholderText("Enter secret passphrase...");
-    m_decShowPassBtn = new QPushButton("👁", decTab);
+    m_decPassword->setPlaceholderText(tr("Enter secret passphrase..."));
+    m_decShowPassBtn = new QPushButton(tr("👁"), decTab);
     m_decShowPassBtn->setObjectName("ghostButton");
     m_decShowPassBtn->setFixedWidth(40);
     m_decShowPassBtn->setCursor(Qt::PointingHandCursor);
@@ -173,13 +173,13 @@ MainWindow::MainWindow(QWidget *parent)
     decPassLayout->addWidget(m_decShowPassBtn);
     decLayout->addLayout(decPassLayout);
 
-    m_decBtn = new QPushButton("Decrypt File", decTab);
+    m_decBtn = new QPushButton(tr("Decrypt File"), decTab);
     m_decBtn->setObjectName("primaryButton");
     m_decBtn->setFixedHeight(42);
     m_decBtn->setCursor(Qt::PointingHandCursor);
     decLayout->addWidget(m_decBtn);
 
-    m_tabWidget->addTab(decTab, "Decrypt");
+    m_tabWidget->addTab(decTab, tr("Decrypt"));
 
     mainLayout->addWidget(m_tabWidget);
 
@@ -192,7 +192,7 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->addWidget(m_progressBar);
 
     // Log Console Box
-    QLabel *logLabel = new QLabel("Console Output", this);
+    QLabel *logLabel = new QLabel(tr("Console Output"), this);
     logLabel->setObjectName("consoleLabel");
     logLabel->setStyleSheet("font-size: 12px; font-weight: 600;");
     mainLayout->addWidget(logLabel);
@@ -235,8 +235,8 @@ void MainWindow::setupTrayIcon() {
     QIcon icon(":/icon.png");
 
     m_trayMenu = new QMenu(this);
-    QAction *toggleAction = new QAction("Show / Hide Window", this);
-    QAction *exitAction = new QAction("Exit XPC-3", this);
+    QAction *toggleAction = new QAction(tr("Show / Hide Window"), this);
+    QAction *exitAction = new QAction(tr("Exit XPC-3"), this);
 
     connect(toggleAction, &QAction::triggered, this, &MainWindow::toggleWindowVisibility);
     connect(exitAction, &QAction::triggered, qApp, &QApplication::quit);
@@ -247,7 +247,7 @@ void MainWindow::setupTrayIcon() {
 
     m_trayIcon = new QSystemTrayIcon(icon, this);
     m_trayIcon->setContextMenu(m_trayMenu);
-    m_trayIcon->setToolTip("XPC-3");
+    m_trayIcon->setToolTip(tr("XPC-3"));
 
     connect(m_trayIcon, &QSystemTrayIcon::activated, this, &MainWindow::onTrayIconActivated);
     m_trayIcon->show();
@@ -272,7 +272,7 @@ void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason) {
 void MainWindow::closeEvent(QCloseEvent *event) {
     if (m_trayIcon->isVisible()) {
         hide();
-        m_trayIcon->showMessage("XPC-3", "Application is minimized to system tray.",
+        m_trayIcon->showMessage(tr("XPC-3"), tr("Application is minimized to system tray."),
                                  QSystemTrayIcon::Information, 2000);
         event->ignore();
     } else {
@@ -387,17 +387,17 @@ QString MainWindow::autoDecOutputPath(const QString &inPath) {
 
 void MainWindow::updateEncOutputHint(const QString &inPath) {
     if (inPath.trimmed().isEmpty()) {
-        m_encOutHintLabel->setText("Destination: (select file or folder first)");
+        m_encOutHintLabel->setText(tr("Destination: (select file or folder first)"));
     } else {
-        m_encOutHintLabel->setText(QString("Destination: %1").arg(autoEncOutputPath(inPath)));
+        m_encOutHintLabel->setText(tr("Destination: %1").arg(autoEncOutputPath(inPath)));
     }
 }
 
 void MainWindow::updateDecOutputHint(const QString &inPath) {
     if (inPath.trimmed().isEmpty()) {
-        m_decOutHintLabel->setText("Destination: (select .xpc file first)");
+        m_decOutHintLabel->setText(tr("Destination: (select .xpc file first)"));
     } else {
-        m_decOutHintLabel->setText(QString("Destination: %1").arg(autoDecOutputPath(inPath)));
+        m_decOutHintLabel->setText(tr("Destination: %1").arg(autoDecOutputPath(inPath)));
     }
 }
 
@@ -418,22 +418,22 @@ void MainWindow::dropEvent(QDropEvent *event) {
             m_tabWidget->setCurrentIndex(0);
             m_encInPath->setText(filePath);
         }
-        appendLog(QString("Target dropped: %1").arg(filePath));
+        appendLog(tr("Target dropped: %1").arg(filePath));
     }
 }
 
 void MainWindow::browseEncInput() {
-    QString path = QFileDialog::getOpenFileName(this, "Select File to Encrypt");
+    QString path = QFileDialog::getOpenFileName(this, tr("Select File to Encrypt"));
     if (!path.isEmpty()) m_encInPath->setText(path);
 }
 
 void MainWindow::browseEncFolder() {
-    QString path = QFileDialog::getExistingDirectory(this, "Select Directory to Encrypt");
+    QString path = QFileDialog::getExistingDirectory(this, tr("Select Directory to Encrypt"));
     if (!path.isEmpty()) m_encInPath->setText(path);
 }
 
 void MainWindow::browseDecInput() {
-    QString path = QFileDialog::getOpenFileName(this, "Select .xpc File to Decrypt", "", "XPC Files (*.xpc);;All Files (*)");
+    QString path = QFileDialog::getOpenFileName(this, tr("Select .xpc File to Decrypt"), "", "XPC Files (*.xpc);;All Files (*)");
     if (!path.isEmpty()) m_decInPath->setText(path);
 }
 
@@ -451,7 +451,7 @@ void MainWindow::toggleDecPassword() {
 
 void MainWindow::appendLog(const QString &msg) {
     QString timeStr = QDateTime::currentDateTime().toString("hh:mm:ss");
-    m_logConsole->append(QString("[%1] %2").arg(timeStr, msg));
+    m_logConsole->append(tr("[%1] %2").arg(timeStr, msg));
 }
 
 void MainWindow::startEncryption() {
@@ -460,12 +460,12 @@ void MainWindow::startEncryption() {
     QString pass = m_encPassword->text();
 
     if (inFile.isEmpty() || pass.isEmpty()) {
-        QMessageBox::warning(this, "Input Required", "Please select a target file and enter a passphrase.");
+        QMessageBox::warning(this, tr("Input Required"), tr("Please select a target file and enter a passphrase."));
         return;
     }
 
     if (!QFileInfo::exists(inFile)) {
-        QMessageBox::critical(this, "File Not Found", QString("Target file does not exist:\n%1").arg(inFile));
+        QMessageBox::critical(this, "File Not Found", tr("Target file does not exist:\n%1").arg(inFile));
         return;
     }
 
@@ -485,12 +485,12 @@ void MainWindow::startDecryption() {
     QString pass = m_decPassword->text();
 
     if (inFile.isEmpty() || pass.isEmpty()) {
-        QMessageBox::warning(this, "Input Required", "Please select an encrypted .xpc file and enter a passphrase.");
+        QMessageBox::warning(this, tr("Input Required"), tr("Please select an encrypted .xpc file and enter a passphrase."));
         return;
     }
 
     if (!QFileInfo::exists(inFile)) {
-        QMessageBox::critical(this, "File Not Found", QString("Selected .xpc file does not exist:\n%1").arg(inFile));
+        QMessageBox::critical(this, "File Not Found", tr("Selected .xpc file does not exist:\n%1").arg(inFile));
         return;
     }
 

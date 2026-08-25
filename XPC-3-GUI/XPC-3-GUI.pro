@@ -31,3 +31,10 @@ SOURCES += \
     $$XPC_SRC_DIR/xbe.c \
     $$XPC_SRC_DIR/xcm.c \
     $$XPC_SRC_DIR/xpc3.c
+
+TRANSLATIONS += \
+    translations/xpc3_ru.ts \
+    translations/xpc3_es.ts \
+    translations/xpc3_de.ts \
+    translations/xpc3_zh.ts \
+    translations/xpc3_fr.ts
