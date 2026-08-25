@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=XPC-3
+Comment=Xalether Privacy Chain v3 - Cascade File and Folder Encryption
+Exec=xpc3-gui %F
+Icon=xpc3-gui
+Terminal=false
+Categories=Utility;Security;
+MimeType=application/x-xpc;

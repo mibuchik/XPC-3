@@ -1,0 +1,15 @@
+# Build artifacts and compiled binaries
+*.o
+*.moc.cpp
+qrc_resources.cpp
+.qmake.stash
+XPC-3-GUI/xpc3-gui
+XPC-3/xpc3
+
+# Archives and portable builds
+*.tar.gz
+XPC-3-GUI/XPC-3-GUI-Portable/
+
+# OS generated files
+.DS_Store
+Thumbs.db

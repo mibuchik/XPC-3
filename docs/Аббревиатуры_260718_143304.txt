@@ -1,0 +1,8 @@
+· XPC — Xalether Privacy Chain / Xalether Primal Cipher — наш основной шифр тройного каскада (внутренний слой → AES-256-GCM → ChaCha20-Poly1305)
+· XKDF — Xalether Key Derivation Function — наш memory-hard генератор ключей на 64 МиБ с SHA3-512
+· XBE — Xalether Block Encryption — наш блочный шифр на 24-раундовой сети Фейстеля с SHA3-256
+· XCM — Xalether Cipher Mode — наш режим сцепления блоков (CBC + CTR через Feistel)
+· XSHE — Xalether Stochastic Hybrid Encryption — ранняя концепция стохастического шифра (не используется, осталась в истории)
+· XC1 — Xalether Cipher v1 — первая версия формата зашифрованного файла
+· XPC-2 — Xalether Primal Cipher v2 — вторая версия (16 раундов, 100k итераций KDF, HMAC)
+· XPC-3 — Xalether Primal Cipher v3 — текущая версия (memory-hard KDF, 24 раунда, synthetic IV, тройной каскад)
