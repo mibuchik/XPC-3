@@ -3,8 +3,8 @@ CC ?= gcc
 MOC ?= moc
 RCC ?= rcc
 
-CXXFLAGS ?= -O3 -Wall -Wextra -std=c++11 -fPIC $(shell pkg-config --cflags Qt5Widgets) -I../XPC-3 -DOPENSSL_SUPPRESS_DEPRECATED
-CFLAGS ?= -O3 -Wall -Wextra -std=c11 -fPIC -DOPENSSL_SUPPRESS_DEPRECATED -I../XPC-3
+CXXFLAGS += -O3 -Wall -Wextra -std=c++11 -fPIC $(shell pkg-config --cflags Qt5Widgets) -I../XPC-3 -DOPENSSL_SUPPRESS_DEPRECATED
+CFLAGS += -O3 -Wall -Wextra -std=c11 -fPIC -DOPENSSL_SUPPRESS_DEPRECATED -I../XPC-3
 LIBS ?= $(shell pkg-config --libs Qt5Widgets) -lcrypto -lz
 
 TARGET = xpc3-gui

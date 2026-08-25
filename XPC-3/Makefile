@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS ?= -O3 -Wall -Wextra -Werror -std=c11 -DOPENSSL_SUPPRESS_DEPRECATED
+CFLAGS += -O3 -Wall -Wextra -std=c11 -fPIC -DOPENSSL_SUPPRESS_DEPRECATED
 LDFLAGS ?= -lcrypto -lz
 
 TARGET = xpc3
