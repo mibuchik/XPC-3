@@ -1,6 +1,7 @@
 # Build artifacts and compiled binaries
 *.o
 *.moc.cpp
+moc_*
 qrc_resources.cpp
 .qmake.stash
 XPC-3-GUI/xpc3-gui

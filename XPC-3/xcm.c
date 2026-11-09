@@ -1,5 +1,6 @@
 #include "xcm.h"
 #include <string.h>
+#include <openssl/crypto.h>
 
 static void increment_counter(uint8_t counter[XPC_BLOCK_SIZE]) {
     for (int i = XPC_BLOCK_SIZE - 1; i >= 0; i--) {
@@ -25,14 +26,19 @@ int xcm_encrypt(const uint8_t *in_data, size_t len,
     memset(prev_block, 0, XPC_BLOCK_SIZE);
 
     size_t num_blocks = len / XPC_BLOCK_SIZE;
+    int res = XPC_OK;
 
     for (size_t b = 0; b < num_blocks; b++) {
         const uint8_t *in_blk = in_data + (b * XPC_BLOCK_SIZE);
         uint8_t *out_blk = out_data + (b * XPC_BLOCK_SIZE);
 
         uint8_t keystream[XPC_BLOCK_SIZE];
-        int res = xbe_encrypt_block(counter, keystream, ks);
-        if (res != XPC_OK) return res;
+        res = xbe_encrypt_block(counter, keystream, ks);
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(counter, sizeof(counter));
+            OPENSSL_cleanse(prev_block, sizeof(prev_block));
+            return res;
+        }
 
         uint8_t mixed[XPC_BLOCK_SIZE];
         for (int i = 0; i < XPC_BLOCK_SIZE; i++) {
@@ -40,12 +46,20 @@ int xcm_encrypt(const uint8_t *in_data, size_t len,
         }
 
         res = xbe_encrypt_block(mixed, out_blk, ks);
-        if (res != XPC_OK) return res;
+        OPENSSL_cleanse(keystream, sizeof(keystream));
+        OPENSSL_cleanse(mixed, sizeof(mixed));
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(counter, sizeof(counter));
+            OPENSSL_cleanse(prev_block, sizeof(prev_block));
+            return res;
+        }
 
         memcpy(prev_block, out_blk, XPC_BLOCK_SIZE);
         increment_counter(counter);
     }
 
+    OPENSSL_cleanse(counter, sizeof(counter));
+    OPENSSL_cleanse(prev_block, sizeof(prev_block));
     return XPC_OK;
 }
 
@@ -65,26 +79,41 @@ int xcm_decrypt(const uint8_t *in_data, size_t len,
     memset(prev_block, 0, XPC_BLOCK_SIZE);
 
     size_t num_blocks = len / XPC_BLOCK_SIZE;
+    int res = XPC_OK;
 
     for (size_t b = 0; b < num_blocks; b++) {
         const uint8_t *in_blk = in_data + (b * XPC_BLOCK_SIZE);
         uint8_t *out_blk = out_data + (b * XPC_BLOCK_SIZE);
 
         uint8_t keystream[XPC_BLOCK_SIZE];
-        int res = xbe_encrypt_block(counter, keystream, ks);
-        if (res != XPC_OK) return res;
+        res = xbe_encrypt_block(counter, keystream, ks);
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(counter, sizeof(counter));
+            OPENSSL_cleanse(prev_block, sizeof(prev_block));
+            return res;
+        }
 
         uint8_t mixed[XPC_BLOCK_SIZE];
         res = xbe_decrypt_block(in_blk, mixed, ks);
-        if (res != XPC_OK) return res;
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(keystream, sizeof(keystream));
+            OPENSSL_cleanse(counter, sizeof(counter));
+            OPENSSL_cleanse(prev_block, sizeof(prev_block));
+            return res;
+        }
 
         for (int i = 0; i < XPC_BLOCK_SIZE; i++) {
             out_blk[i] = mixed[i] ^ prev_block[i] ^ keystream[i];
         }
 
+        OPENSSL_cleanse(keystream, sizeof(keystream));
+        OPENSSL_cleanse(mixed, sizeof(mixed));
+
         memcpy(prev_block, in_blk, XPC_BLOCK_SIZE);
         increment_counter(counter);
     }
 
+    OPENSSL_cleanse(counter, sizeof(counter));
+    OPENSSL_cleanse(prev_block, sizeof(prev_block));
     return XPC_OK;
 }

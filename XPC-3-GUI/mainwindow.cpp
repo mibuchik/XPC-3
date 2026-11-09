@@ -126,6 +126,11 @@ MainWindow::MainWindow(QWidget *parent)
     encPassLayout->addWidget(m_encShowPassBtn);
     encLayout->addLayout(encPassLayout);
 
+    m_encShredCheck = new QCheckBox(tr("Delete (shred) source file after encryption"), encTab);
+    m_encShredCheck->setObjectName("optionCheckBox");
+    m_encShredCheck->setChecked(false);
+    encLayout->addWidget(m_encShredCheck);
+
     m_encBtn = new QPushButton(tr("Encrypt Target"), encTab);
     m_encBtn->setObjectName("primaryButton");
     m_encBtn->setFixedHeight(42);
@@ -172,6 +177,11 @@ MainWindow::MainWindow(QWidget *parent)
     decPassLayout->addWidget(m_decPassword);
     decPassLayout->addWidget(m_decShowPassBtn);
     decLayout->addLayout(decPassLayout);
+
+    m_decShredCheck = new QCheckBox(tr("Delete .xpc container after successful decryption"), decTab);
+    m_decShredCheck->setObjectName("optionCheckBox");
+    m_decShredCheck->setChecked(false);
+    decLayout->addWidget(m_decShredCheck);
 
     m_decBtn = new QPushButton(tr("Decrypt File"), decTab);
     m_decBtn->setObjectName("primaryButton");
@@ -301,68 +311,76 @@ void MainWindow::applySystemTheme() {
 
     // Style badges dynamically
     QString badgeCss = dark ?
-        "background-color: #27272a; color: #a1a1aa; border: 1px solid #3f3f46; border-radius: 9999px; padding: 3px 10px; font-size: 11px; font-weight: 500;" :
-        "background-color: #f4f4f5; color: #71717a; border: 1px solid #e4e4e7; border-radius: 9999px; padding: 3px 10px; font-size: 11px; font-weight: 500;";
+        "background-color: rgba(0, 245, 184, 0.08); color: #00f5b8; border: 1px solid rgba(0, 245, 184, 0.3); border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 600;" :
+        "background-color: #f1f5f9; color: #0f766e; border: 1px solid #cbd5e1; border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 600;";
 
     for (QLabel *b : m_badges) {
         b->setStyleSheet(badgeCss);
     }
 
-    // Dynamic shadcn/ui Theme Stylesheet (Dark vs Light)
+    // Dynamic High-Tech Cyber Theme Stylesheet (Dark vs Light)
     QString qss = dark ? R"(
-        QMainWindow { background-color: #09090b; }
-        QWidget { color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        #shadcnCard { background-color: #18181b; border: 1px solid #27272a; border-radius: 8px; }
-        #titleLabel { color: #fafafa; }
-        #descLabel { color: #a1a1aa; }
-        #hintLabel { color: #a1a1aa; }
-        #consoleLabel { color: #a1a1aa; }
-        #shadcnDropZone { background-color: #09090b; border: 1px dashed #3f3f46; border-radius: 8px; color: #71717a; font-size: 13px; font-weight: 500; }
-        #shadcnDropZone:hover { background-color: #18181b; border-color: #a1a1aa; color: #fafafa; }
-        QTabWidget::pane { border: 1px solid #27272a; background-color: #18181b; border-radius: 8px; }
-        QTabBar::tab { background-color: #09090b; color: #71717a; padding: 8px 18px; border-radius: 6px; margin: 4px 2px; font-weight: 500; font-size: 13px; }
-        QTabBar::tab:selected { background-color: #27272a; color: #fafafa; }
-        QLineEdit { background-color: #09090b; border: 1px solid #27272a; border-radius: 6px; padding: 8px 12px; color: #fafafa; font-size: 13px; }
-        QLineEdit:focus { border: 1px solid #a1a1aa; }
-        #primaryButton { background-color: #fafafa; color: #09090b; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; }
-        #primaryButton:hover { background-color: #e4e4e7; }
-        #secondaryButton { background-color: #27272a; color: #fafafa; border: 1px solid #3f3f46; border-radius: 6px; font-weight: 500; }
-        #secondaryButton:hover { background-color: #3f3f46; }
-        #ghostButton { background-color: transparent; color: #a1a1aa; border: 1px solid #27272a; border-radius: 6px; }
-        #ghostButton:hover { background-color: #27272a; color: #fafafa; }
-        QTextEdit { background-color: #09090b; border: 1px solid #27272a; border-radius: 6px; color: #a1a1aa; padding: 8px; }
-        QProgressBar { background-color: #18181b; border-radius: 2px; }
-        QProgressBar::chunk { background-color: #fafafa; border-radius: 2px; }
-        QMenu { background-color: #18181b; color: #fafafa; border: 1px solid #27272a; padding: 4px; border-radius: 6px; }
+        QMainWindow { background-color: #0b0c10; }
+        QWidget { color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #shadcnCard { background-color: #12141d; border: 1px solid #1e2235; border-radius: 10px; }
+        #titleLabel { color: #f8fafc; font-weight: 700; font-size: 20px; }
+        #descLabel { color: #94a3b8; }
+        #hintLabel { color: #38bdf8; font-weight: 500; font-family: monospace; }
+        #consoleLabel { color: #94a3b8; }
+        #optionCheckBox { color: #94a3b8; font-size: 12px; font-weight: 500; spacing: 8px; }
+        #optionCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; }
+        #optionCheckBox::indicator:checked { background-color: #00f5b8; border: 1px solid #00f5b8; }
+        #shadcnDropZone { background-color: #0f1118; border: 2px dashed #24293e; border-radius: 8px; color: #64748b; font-size: 13px; font-weight: 500; }
+        #shadcnDropZone:hover { background-color: #161a26; border-color: #00f5b8; color: #f8fafc; }
+        QTabWidget::pane { border: 1px solid #1e2235; background-color: #12141d; border-radius: 8px; }
+        QTabBar::tab { background-color: #0b0c10; color: #64748b; padding: 8px 20px; border-radius: 6px; margin: 4px 2px; font-weight: 600; font-size: 13px; }
+        QTabBar::tab:selected { background-color: #1e2235; color: #00f5b8; }
+        QLineEdit { background-color: #0b0c10; border: 1px solid #1e2235; border-radius: 6px; padding: 9px 12px; color: #f8fafc; font-size: 13px; }
+        QLineEdit:focus { border: 1px solid #00f5b8; background-color: #0f1118; }
+        #primaryButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f5b8, stop:1 #02c39a); color: #050608; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; }
+        #primaryButton:hover { background: #34d399; }
+        #primaryButton:disabled { background-color: #1e2235; color: #475569; }
+        #secondaryButton { background-color: #1a1e2b; color: #f8fafc; border: 1px solid #282f44; border-radius: 6px; font-weight: 600; padding: 0 14px; }
+        #secondaryButton:hover { background-color: #242c3f; border-color: #38bdf8; }
+        #ghostButton { background-color: transparent; color: #94a3b8; border: 1px solid #1e2235; border-radius: 6px; }
+        #ghostButton:hover { background-color: #1e2235; color: #00f5b8; }
+        QTextEdit { background-color: #08090d; border: 1px solid #1a1e2b; border-radius: 6px; color: #cbd5e1; padding: 10px; font-family: monospace; font-size: 12px; }
+        QProgressBar { background-color: #12141d; border-radius: 2px; height: 4px; }
+        QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f5b8, stop:1 #38bdf8); border-radius: 2px; }
+        QMenu { background-color: #12141d; color: #f8fafc; border: 1px solid #1e2235; padding: 4px; border-radius: 6px; }
         QMenu::item { padding: 6px 20px; border-radius: 4px; }
-        QMenu::item:selected { background-color: #27272a; color: #fafafa; }
+        QMenu::item:selected { background-color: #1e2235; color: #00f5b8; }
     )" : R"(
-        QMainWindow { background-color: #ffffff; }
-        QWidget { color: #09090b; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        #shadcnCard { background-color: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 8px; }
-        #titleLabel { color: #09090b; }
-        #descLabel { color: #71717a; }
-        #hintLabel { color: #71717a; }
-        #consoleLabel { color: #71717a; }
-        #shadcnDropZone { background-color: #ffffff; border: 1px dashed #e4e4e7; border-radius: 8px; color: #71717a; font-size: 13px; font-weight: 500; }
-        #shadcnDropZone:hover { background-color: #f4f4f5; border-color: #71717a; color: #09090b; }
-        QTabWidget::pane { border: 1px solid #e4e4e7; background-color: #f4f4f5; border-radius: 8px; }
-        QTabBar::tab { background-color: #ffffff; color: #71717a; padding: 8px 18px; border-radius: 6px; margin: 4px 2px; font-weight: 500; font-size: 13px; }
-        QTabBar::tab:selected { background-color: #e4e4e7; color: #09090b; }
-        QLineEdit { background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; padding: 8px 12px; color: #09090b; font-size: 13px; }
-        QLineEdit:focus { border: 1px solid #71717a; }
-        #primaryButton { background-color: #09090b; color: #ffffff; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; }
-        #primaryButton:hover { background-color: #27272a; }
-        #secondaryButton { background-color: #e4e4e7; color: #09090b; border: 1px solid #d4d4d8; border-radius: 6px; font-weight: 500; }
-        #secondaryButton:hover { background-color: #d4d4d8; }
-        #ghostButton { background-color: transparent; color: #71717a; border: 1px solid #e4e4e7; border-radius: 6px; }
-        #ghostButton:hover { background-color: #e4e4e7; color: #09090b; }
-        QTextEdit { background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; color: #18181b; padding: 8px; }
-        QProgressBar { background-color: #e4e4e7; border-radius: 2px; }
-        QProgressBar::chunk { background-color: #09090b; border-radius: 2px; }
-        QMenu { background-color: #ffffff; color: #09090b; border: 1px solid #e4e4e7; padding: 4px; border-radius: 6px; }
+        QMainWindow { background-color: #f8fafc; }
+        QWidget { color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        #shadcnCard { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }
+        #titleLabel { color: #0f172a; font-weight: 700; font-size: 20px; }
+        #descLabel { color: #64748b; }
+        #hintLabel { color: #0284c7; font-weight: 500; font-family: monospace; }
+        #consoleLabel { color: #64748b; }
+        #optionCheckBox { color: #475569; font-size: 12px; font-weight: 500; spacing: 8px; }
+        #optionCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #ffffff; }
+        #optionCheckBox::indicator:checked { background-color: #0f766e; border: 1px solid #0f766e; }
+        #shadcnDropZone { background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; color: #64748b; font-size: 13px; font-weight: 500; }
+        #shadcnDropZone:hover { background-color: #e2e8f0; border-color: #0f766e; color: #0f172a; }
+        QTabWidget::pane { border: 1px solid #e2e8f0; background-color: #ffffff; border-radius: 8px; }
+        QTabBar::tab { background-color: #f1f5f9; color: #64748b; padding: 8px 20px; border-radius: 6px; margin: 4px 2px; font-weight: 600; font-size: 13px; }
+        QTabBar::tab:selected { background-color: #ffffff; color: #0f766e; }
+        QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; color: #0f172a; font-size: 13px; }
+        QLineEdit:focus { border: 1px solid #0f766e; }
+        #primaryButton { background-color: #0f766e; color: #ffffff; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; }
+        #primaryButton:hover { background-color: #115e59; }
+        #primaryButton:disabled { background-color: #e2e8f0; color: #94a3b8; }
+        #secondaryButton { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; padding: 0 14px; }
+        #secondaryButton:hover { background-color: #e2e8f0; }
+        #ghostButton { background-color: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 6px; }
+        #ghostButton:hover { background-color: #e2e8f0; color: #0f172a; }
+        QTextEdit { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; color: #1e293b; padding: 10px; font-family: monospace; font-size: 12px; }
+        QProgressBar { background-color: #e2e8f0; border-radius: 2px; height: 4px; }
+        QProgressBar::chunk { background-color: #0f766e; border-radius: 2px; }
+        QMenu { background-color: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; padding: 4px; border-radius: 6px; }
         QMenu::item { padding: 6px 20px; border-radius: 4px; }
-        QMenu::item:selected { background-color: #f4f4f5; color: #09090b; }
+        QMenu::item:selected { background-color: #f1f5f9; color: #0f766e; }
     )";
 
     setStyleSheet(qss);
@@ -449,9 +467,33 @@ void MainWindow::toggleDecPassword() {
     m_decShowPassBtn->setText(isPassword ? "🙈" : "👁");
 }
 
+void MainWindow::handleInputPath(const QString &filePath) {
+    if (filePath.isEmpty()) return;
+    if (filePath.endsWith(".xpc", Qt::CaseInsensitive) || filePath.endsWith(".xpc3", Qt::CaseInsensitive)) {
+        m_tabWidget->setCurrentIndex(1);
+        m_decInPath->setText(filePath);
+    } else {
+        m_tabWidget->setCurrentIndex(0);
+        m_encInPath->setText(filePath);
+    }
+    appendLog(tr("Target loaded from system: %1").arg(filePath));
+}
+
 void MainWindow::appendLog(const QString &msg) {
     QString timeStr = QDateTime::currentDateTime().toString("hh:mm:ss");
-    m_logConsole->append(tr("[%1] %2").arg(timeStr, msg));
+    QString formattedMsg = msg;
+    if (msg.startsWith("✨") || msg.contains("completed successfully", Qt::CaseInsensitive) || msg.contains("succeeded", Qt::CaseInsensitive)) {
+        formattedMsg = QString("<span style='color:#00f5b8; font-weight:600;'>%1</span>").arg(msg);
+    } else if (msg.startsWith("❌") || msg.contains("error", Qt::CaseInsensitive) || msg.contains("failed", Qt::CaseInsensitive)) {
+        formattedMsg = QString("<span style='color:#f87171; font-weight:600;'>%1</span>").arg(msg);
+    } else if (msg.startsWith("⚠️") || msg.contains("warning", Qt::CaseInsensitive)) {
+        formattedMsg = QString("<span style='color:#fbbf24;'>%1</span>").arg(msg);
+    } else if (msg.startsWith("🧠") || msg.startsWith("🚀") || msg.startsWith("📦")) {
+        formattedMsg = QString("<span style='color:#38bdf8;'>%1</span>").arg(msg);
+    } else if (msg.startsWith("🗑️") || msg.startsWith("💾")) {
+        formattedMsg = QString("<span style='color:#c084fc;'>%1</span>").arg(msg);
+    }
+    m_logConsole->append(tr("<span style='color:#64748b;'>[%1]</span> %2").arg(timeStr, formattedMsg));
 }
 
 void MainWindow::startEncryption() {
@@ -473,7 +515,8 @@ void MainWindow::startEncryption() {
     m_decBtn->setEnabled(false);
     m_progressBar->setVisible(true);
 
-    m_worker = new CryptoWorker(true, inFile, outFile, pass, this);
+    bool shred = m_encShredCheck->isChecked();
+    m_worker = new CryptoWorker(true, inFile, outFile, pass, shred, this);
     connect(m_worker, &CryptoWorker::logMessage, this, &MainWindow::appendLog);
     connect(m_worker, &CryptoWorker::workFinished, this, &MainWindow::handleFinished);
     m_worker->start();
@@ -498,7 +541,8 @@ void MainWindow::startDecryption() {
     m_decBtn->setEnabled(false);
     m_progressBar->setVisible(true);
 
-    m_worker = new CryptoWorker(false, inFile, outFile, pass, this);
+    bool shred = m_decShredCheck->isChecked();
+    m_worker = new CryptoWorker(false, inFile, outFile, pass, shred, this);
     connect(m_worker, &CryptoWorker::logMessage, this, &MainWindow::appendLog);
     connect(m_worker, &CryptoWorker::workFinished, this, &MainWindow::handleFinished);
     m_worker->start();

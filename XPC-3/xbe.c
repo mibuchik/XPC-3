@@ -1,6 +1,7 @@
 #include "xbe.h"
 #include <string.h>
 #include <openssl/evp.h>
+#include <openssl/crypto.h>
 
 static int sha3_256(const uint8_t *in1, size_t in1_len,
                      const uint8_t *in2, size_t in2_len,
@@ -46,7 +47,11 @@ int xbe_encrypt_block(const uint8_t in_block[XPC_BLOCK_SIZE],
     for (uint8_t r = 0; r < XPC_ROUNDS; r++) {
         uint8_t f_out[32];
         int res = sha3_256(R, 32, ks->round_keys[r], 32, &r, 1, f_out);
-        if (res != XPC_OK) return res;
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(L, sizeof(L));
+            OPENSSL_cleanse(R, sizeof(R));
+            return res;
+        }
 
         uint8_t next_R[32];
         for (int i = 0; i < 32; i++) {
@@ -55,10 +60,14 @@ int xbe_encrypt_block(const uint8_t in_block[XPC_BLOCK_SIZE],
 
         memcpy(L, R, 32);
         memcpy(R, next_R, 32);
+        OPENSSL_cleanse(f_out, sizeof(f_out));
+        OPENSSL_cleanse(next_R, sizeof(next_R));
     }
 
     memcpy(out_block, L, 32);
     memcpy(out_block + 32, R, 32);
+    OPENSSL_cleanse(L, sizeof(L));
+    OPENSSL_cleanse(R, sizeof(R));
     return XPC_OK;
 }
 
@@ -75,7 +84,11 @@ int xbe_decrypt_block(const uint8_t in_block[XPC_BLOCK_SIZE],
         uint8_t round_byte = (uint8_t)r;
         uint8_t f_out[32];
         int res = sha3_256(L, 32, ks->round_keys[r], 32, &round_byte, 1, f_out);
-        if (res != XPC_OK) return res;
+        if (res != XPC_OK) {
+            OPENSSL_cleanse(L, sizeof(L));
+            OPENSSL_cleanse(R, sizeof(R));
+            return res;
+        }
 
         uint8_t prev_L[32];
         for (int i = 0; i < 32; i++) {
@@ -84,9 +97,13 @@ int xbe_decrypt_block(const uint8_t in_block[XPC_BLOCK_SIZE],
 
         memcpy(R, L, 32);
         memcpy(L, prev_L, 32);
+        OPENSSL_cleanse(f_out, sizeof(f_out));
+        OPENSSL_cleanse(prev_L, sizeof(prev_L));
     }
 
     memcpy(out_block, L, 32);
     memcpy(out_block + 32, R, 32);
+    OPENSSL_cleanse(L, sizeof(L));
+    OPENSSL_cleanse(R, sizeof(R));
     return XPC_OK;
 }

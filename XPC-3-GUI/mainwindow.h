@@ -8,6 +8,7 @@
 #include <QTextEdit>
 #include <QTabWidget>
 #include <QLabel>
+#include <QCheckBox>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QEvent>
@@ -23,6 +24,7 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void handleInputPath(const QString &filePath);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -61,6 +63,7 @@ private:
     QLabel *m_encOutHintLabel;
     QLineEdit *m_encPassword;
     QPushButton *m_encShowPassBtn;
+    QCheckBox *m_encShredCheck;
     QPushButton *m_encBtn;
     QLabel *m_encDropZone;
 
@@ -69,6 +72,7 @@ private:
     QLabel *m_decOutHintLabel;
     QLineEdit *m_decPassword;
     QPushButton *m_decShowPassBtn;
+    QCheckBox *m_decShredCheck;
     QPushButton *m_decBtn;
     QLabel *m_decDropZone;
 

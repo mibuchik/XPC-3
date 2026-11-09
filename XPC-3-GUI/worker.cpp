@@ -8,8 +8,8 @@ extern "C" {
 #include "../XPC-3/xpc3.h"
 }
 
-CryptoWorker::CryptoWorker(bool isEncrypt, const QString &inFile, const QString &outFile, const QString &password, QObject *parent)
-    : QThread(parent), m_isEncrypt(isEncrypt), m_inFile(inFile), m_outFile(outFile), m_password(password) {}
+CryptoWorker::CryptoWorker(bool isEncrypt, const QString &inFile, const QString &outFile, const QString &password, bool shredSource, QObject *parent)
+    : QThread(parent), m_isEncrypt(isEncrypt), m_inFile(inFile), m_outFile(outFile), m_password(password), m_shredSource(shredSource) {}
 
 void CryptoWorker::run() {
     emit logMessage(tr("🚀 %1 process started...").arg(m_isEncrypt ? "Encryption" : "Decryption"));
@@ -64,28 +64,37 @@ void CryptoWorker::run() {
         emit logMessage("✨ Cryptographic operations completed successfully!");
 
         if (m_isEncrypt) {
-            if (isDirectoryInput) {
-                if (QDir(m_inFile).removeRecursively()) {
-                    emit logMessage(tr("🗑️ Source directory deleted: %1").arg(m_inFile));
-                } else {
-                    emit logMessage(tr("⚠️ Could not delete source directory: %1").arg(m_inFile));
-                }
-            } else {
-                if (m_inFile != m_outFile) {
-                    if (QFile::remove(m_inFile)) {
-                        emit logMessage(tr("🗑️ Source file deleted: %1").arg(m_inFile));
+            if (m_shredSource) {
+                if (isDirectoryInput) {
+                    if (QDir(m_inFile).removeRecursively()) {
+                        emit logMessage(tr("🗑️ Source directory deleted: %1").arg(m_inFile));
                     } else {
-                        emit logMessage(tr("⚠️ Could not delete source file: %1").arg(m_inFile));
+                        emit logMessage(tr("⚠️ Could not delete source directory: %1").arg(m_inFile));
+                    }
+                } else {
+                    if (m_inFile != m_outFile) {
+                        if (QFile::remove(m_inFile)) {
+                            emit logMessage(tr("🗑️ Source file deleted: %1").arg(m_inFile));
+                        } else {
+                            emit logMessage(tr("⚠️ Could not delete source file: %1").arg(m_inFile));
+                        }
                     }
                 }
+                emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1\nSource file deleted.").arg(m_outFile));
+            } else {
+                emit logMessage(tr("💾 Original source file preserved: %1").arg(m_inFile));
+                emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1").arg(m_outFile));
             }
-            emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1\nSource deleted.").arg(m_outFile));
         } else {
             // Decryption succeeded
-            if (m_inFile != m_outFile) {
-                if (QFile::remove(m_inFile)) {
-                    emit logMessage(tr("🗑️ Encrypted source file deleted: %1").arg(m_inFile));
+            if (m_shredSource) {
+                if (m_inFile != m_outFile) {
+                    if (QFile::remove(m_inFile)) {
+                        emit logMessage(tr("🗑️ Encrypted container deleted: %1").arg(m_inFile));
+                    }
                 }
+            } else {
+                emit logMessage(tr("💾 Encrypted container preserved: %1").arg(m_inFile));
             }
 
             // Check if decrypted file is a tar archive

@@ -7,7 +7,7 @@
 class CryptoWorker : public QThread {
     Q_OBJECT
 public:
-    CryptoWorker(bool isEncrypt, const QString &inFile, const QString &outFile, const QString &password, QObject *parent = nullptr);
+    CryptoWorker(bool isEncrypt, const QString &inFile, const QString &outFile, const QString &password, bool shredSource, QObject *parent = nullptr);
 
 signals:
     void logMessage(const QString &msg);
@@ -21,6 +21,7 @@ private:
     QString m_inFile;
     QString m_outFile;
     QString m_password;
+    bool m_shredSource;
 };
 
 #endif // WORKER_H

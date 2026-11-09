@@ -4,13 +4,11 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
+#include <openssl/crypto.h>
 
 static void secure_memzero(void *ptr, size_t len) {
     if (ptr == NULL || len == 0) return;
-    volatile uint8_t *p = (volatile uint8_t *)ptr;
-    while (len--) {
-        *p++ = 0;
-    }
+    OPENSSL_cleanse(ptr, len);
 }
 
 static int sha3_512(const uint8_t *in1, size_t in1_len,

@@ -2,9 +2,11 @@
 Version=1.0
 Type=Application
 Name=XPC-3
-Comment=Xalether Privacy Chain v3 - Cascade File and Folder Encryption
+Comment=Xalether Primal Cipher v3 - Triple Cascade File and Folder Encryption
 Exec=xpc3-gui %F
 Icon=xpc3-gui
 Terminal=false
-Categories=Utility;Security;
-MimeType=application/x-xpc;
+Categories=Utility;Security;Cryptography;
+MimeType=application/x-xpc;application/x-xpc3;
+Keywords=cryptography;encryption;cipher;feistel;aes;chacha20;xkdf;xpc;
+StartupNotify=true
