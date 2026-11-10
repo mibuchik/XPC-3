@@ -2,151 +2,226 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
+#include <QDirIterator>
 #include <QProcess>
+#include <QElapsedTimer>
 
 extern "C" {
 #include "../XPC-3/xpc3.h"
 }
 
-CryptoWorker::CryptoWorker(bool isEncrypt, const QString &inFile, const QString &outFile, const QString &password, bool shredSource, QObject *parent)
-    : QThread(parent), m_isEncrypt(isEncrypt), m_inFile(inFile), m_outFile(outFile), m_password(password), m_shredSource(shredSource) {}
+CryptoWorker::CryptoWorker(bool isEncrypt, const QStringList &inFiles, const QString &password, bool shredSource, QObject *parent)
+    : QThread(parent), m_isEncrypt(isEncrypt), m_inFiles(inFiles), m_password(password), m_shredSource(shredSource) {}
+
+QString CryptoWorker::autoEncOutputPath(const QString &inPath) {
+    QString p = inPath.trimmed();
+    while (p.endsWith('/') || p.endsWith('\\')) p.chop(1);
+    if (p.isEmpty()) return "";
+    return p + ".xpc";
+}
+
+QString CryptoWorker::autoDecOutputPath(const QString &inPath) {
+    QString p = inPath.trimmed();
+    if (p.isEmpty()) return "";
+    if (p.endsWith(".xpc", Qt::CaseInsensitive)) {
+        return p.left(p.length() - 4);
+    }
+    if (p.endsWith(".xpc3", Qt::CaseInsensitive)) {
+        return p.left(p.length() - 5);
+    }
+    return p + ".dec";
+}
+
+qint64 CryptoWorker::calculatePathSize(const QString &path) {
+    QFileInfo info(path);
+    if (!info.exists()) return 0;
+    if (info.isFile()) return info.size();
+    if (info.isDir()) {
+        qint64 total = 0;
+        QDirIterator it(path, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            it.next();
+            total += it.fileInfo().size();
+        }
+        return total;
+    }
+    return 0;
+}
 
 void CryptoWorker::run() {
-    emit logMessage(tr("🚀 %1 process started...").arg(m_isEncrypt ? "Encryption" : "Decryption"));
-    emit logMessage(tr("   Input: %1").arg(m_inFile));
-    emit logMessage(tr("   Output: %1").arg(m_outFile));
+    int totalFiles = m_inFiles.size();
+    if (totalFiles == 0) {
+        emit workFinished(false, tr("No files to process."));
+        return;
+    }
 
-    QFileInfo inInfo(m_inFile);
-    bool isDirectoryInput = inInfo.isDir();
-    QString actualInFile = m_inFile;
-    QString tempTarFile = "";
+    emit logMessage(tr("🚀 Starting batch %1 of %2 target(s)...")
+                    .arg(m_isEncrypt ? "Encryption" : "Decryption")
+                    .arg(totalFiles));
 
-    if (m_isEncrypt && isDirectoryInput) {
-        emit logMessage("📦 Target is a directory. Archiving folder with tar...");
-        tempTarFile = m_inFile + ".tmp.tar";
-        QFile::remove(tempTarFile);
+    qint64 totalBytes = 0;
+    for (const QString &f : m_inFiles) {
+        totalBytes += calculatePathSize(f);
+    }
 
-        QDir dir(m_inFile);
-        QString folderName = dir.dirName();
-        QString parentDir = QFileInfo(m_inFile).absolutePath();
+    QElapsedTimer timer;
+    timer.start();
 
-        QProcess tarProc;
-        tarProc.start("tar", QStringList() << "-cf" << tempTarFile << "-C" << parentDir << folderName);
-        tarProc.waitForFinished(-1);
+    qint64 bytesDone = 0;
+    int successCount = 0;
+    int failCount = 0;
 
-        if (tarProc.exitCode() != 0 || !QFile::exists(tempTarFile)) {
-            emit logMessage("❌ Error archiving directory with tar.");
-            emit workFinished(false, "Failed to archive directory prior to encryption.");
-            return;
+    for (int i = 0; i < totalFiles; ++i) {
+        QString currentInFile = m_inFiles[i];
+        QFileInfo inInfo(currentInFile);
+        qint64 itemSize = calculatePathSize(currentInFile);
+
+        emit itemStarted(i, currentInFile);
+        emit logMessage(tr("🔹 [%1/%2] Processing: %3 (%4 KB)")
+                        .arg(i + 1)
+                        .arg(totalFiles)
+                        .arg(inInfo.fileName())
+                        .arg(itemSize / 1024));
+
+        if (!inInfo.exists()) {
+            failCount++;
+            emit itemFinished(i, false, tr("File not found"));
+            emit logMessage(tr("❌ File not found: %1").arg(currentInFile));
+            continue;
         }
-        actualInFile = tempTarFile;
-        emit logMessage("✅ Directory archived to temporary tar stream.");
-    }
 
-    emit logMessage("🧠 Computing Memory-Hard XKDF (64 MiB RAM, 3 passes)...");
+        bool isDirectoryInput = inInfo.isDir();
+        QString actualInFile = currentInFile;
+        QString tempTarFile = "";
 
-    std::string inStr = actualInFile.toStdString();
-    std::string outStr = m_outFile.toStdString();
-    std::string passStr = m_password.toStdString();
+        if (m_isEncrypt && isDirectoryInput) {
+            emit logMessage(tr("📦 Archiving folder '%1' with tar...").arg(inInfo.fileName()));
+            tempTarFile = currentInFile + ".tmp.tar";
+            QFile::remove(tempTarFile);
 
-    int res = 0;
-    if (m_isEncrypt) {
-        res = xpc3_encrypt_file(inStr.c_str(), outStr.c_str(), passStr.c_str());
-    } else {
-        res = xpc3_decrypt_file(inStr.c_str(), outStr.c_str(), passStr.c_str());
-    }
+            QDir dir(currentInFile);
+            QString folderName = dir.dirName();
+            QString parentDir = QFileInfo(currentInFile).absolutePath();
 
-    if (!tempTarFile.isEmpty()) {
-        QFile::remove(tempTarFile);
-    }
+            QProcess tarProc;
+            tarProc.start("tar", QStringList() << "-cf" << tempTarFile << "-C" << parentDir << folderName);
+            tarProc.waitForFinished(-1);
 
-    if (res == XPC_OK) {
-        emit logMessage("✨ Cryptographic operations completed successfully!");
+            if (tarProc.exitCode() != 0 || !QFile::exists(tempTarFile)) {
+                failCount++;
+                emit itemFinished(i, false, tr("Tar archiving failed"));
+                emit logMessage(tr("❌ Error archiving directory with tar: %1").arg(currentInFile));
+                continue;
+            }
+            actualInFile = tempTarFile;
+        }
 
+        QString currentOutFile = m_isEncrypt ? autoEncOutputPath(currentInFile) : autoDecOutputPath(currentInFile);
+        std::string inStr = actualInFile.toStdString();
+        std::string outStr = currentOutFile.toStdString();
+        std::string passStr = m_password.toStdString();
+
+        int res = 0;
         if (m_isEncrypt) {
-            if (m_shredSource) {
-                if (isDirectoryInput) {
-                    if (QDir(m_inFile).removeRecursively()) {
-                        emit logMessage(tr("🗑️ Source directory deleted: %1").arg(m_inFile));
-                    } else {
-                        emit logMessage(tr("⚠️ Could not delete source directory: %1").arg(m_inFile));
-                    }
-                } else {
-                    if (m_inFile != m_outFile) {
-                        if (QFile::remove(m_inFile)) {
-                            emit logMessage(tr("🗑️ Source file deleted: %1").arg(m_inFile));
-                        } else {
-                            emit logMessage(tr("⚠️ Could not delete source file: %1").arg(m_inFile));
-                        }
-                    }
-                }
-                emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1\nSource file deleted.").arg(m_outFile));
-            } else {
-                emit logMessage(tr("💾 Original source file preserved: %1").arg(m_inFile));
-                emit workFinished(true, tr("Encryption succeeded!\nOutput saved to: %1").arg(m_outFile));
-            }
+            res = xpc3_encrypt_file(inStr.c_str(), outStr.c_str(), passStr.c_str());
         } else {
-            // Decryption succeeded
-            if (m_shredSource) {
-                if (m_inFile != m_outFile) {
-                    if (QFile::remove(m_inFile)) {
-                        emit logMessage(tr("🗑️ Encrypted container deleted: %1").arg(m_inFile));
+            res = xpc3_decrypt_file(inStr.c_str(), outStr.c_str(), passStr.c_str());
+        }
+
+        if (!tempTarFile.isEmpty()) {
+            QFile::remove(tempTarFile);
+        }
+
+        if (res == XPC_OK) {
+            successCount++;
+
+            if (m_isEncrypt) {
+                if (m_shredSource) {
+                    if (isDirectoryInput) {
+                        QDir(currentInFile).removeRecursively();
+                    } else if (currentInFile != currentOutFile) {
+                        QFile::remove(currentInFile);
                     }
+                    emit logMessage(tr("🗑️ Source shredded: %1").arg(inInfo.fileName()));
                 }
             } else {
-                emit logMessage(tr("💾 Encrypted container preserved: %1").arg(m_inFile));
-            }
+                if (m_shredSource && currentInFile != currentOutFile) {
+                    QFile::remove(currentInFile);
+                    emit logMessage(tr("🗑️ Container shredded: %1").arg(inInfo.fileName()));
+                }
 
-            // Check if decrypted file is a tar archive
-            QProcess testTar;
-            testTar.start("tar", QStringList() << "-tf" << m_outFile);
-            testTar.waitForFinished(-1);
+                // Check if decrypted file is a tar archive and unpack
+                QProcess testTar;
+                testTar.start("tar", QStringList() << "-tf" << currentOutFile);
+                testTar.waitForFinished(-1);
 
-            if (testTar.exitCode() == 0) {
-                emit logMessage("📦 Decrypted payload is a directory archive. Extracting folder...");
-                QFileInfo outInfo(m_outFile);
-                QString destParentDir = outInfo.absolutePath();
+                if (testTar.exitCode() == 0) {
+                    QFileInfo outInfo(currentOutFile);
+                    QString destParentDir = outInfo.absolutePath();
 
-                QProcess extractProc;
-                extractProc.start("tar", QStringList() << "-xf" << m_outFile << "-C" << destParentDir);
-                extractProc.waitForFinished(-1);
+                    QProcess extractProc;
+                    extractProc.start("tar", QStringList() << "-xf" << currentOutFile << "-C" << destParentDir);
+                    extractProc.waitForFinished(-1);
 
-                if (extractProc.exitCode() == 0) {
-                    QFile::remove(m_outFile);
-                    emit logMessage(tr("📂 Directory extracted successfully to: %1").arg(destParentDir));
-                    emit workFinished(true, tr("Decryption succeeded!\nDirectory extracted to: %1").arg(destParentDir));
-                    return;
-                } else {
-                    emit logMessage("⚠️ Failed to auto-extract tar archive, keeping output file.");
+                    if (extractProc.exitCode() == 0) {
+                        QFile::remove(currentOutFile);
+                        emit logMessage(tr("📂 Unpacked archive to: %1").arg(destParentDir));
+                    }
                 }
             }
 
-            emit workFinished(true, tr("Decryption succeeded!\nFile saved to: %1").arg(m_outFile));
+            emit itemFinished(i, true, tr("OK"));
+            emit logMessage(tr("✨ Success: %1 -> %2").arg(inInfo.fileName(), QFileInfo(currentOutFile).fileName()));
+        } else {
+            failCount++;
+            QString errMsg;
+            switch (res) {
+                case XPC_ERR_MEMORY:
+                    errMsg = "Memory failure (64 MiB)";
+                    break;
+                case XPC_ERR_AUTH_FAILED:
+                case XPC_ERR_INVALID_PASS:
+                    errMsg = "Auth failed / wrong pass";
+                    break;
+                case XPC_ERR_FILE_IO:
+                    errMsg = "File I/O error";
+                    break;
+                case XPC_ERR_INVALID_FORMAT:
+                    errMsg = "Corrupt / invalid format";
+                    break;
+                case XPC_ERR_DECOMPRESSION:
+                    errMsg = "Decompression failed";
+                    break;
+                default:
+                    errMsg = tr("Crypto error %1").arg(res);
+                    break;
+            }
+            emit itemFinished(i, false, errMsg);
+            emit logMessage(tr("❌ Error on %1: %2").arg(inInfo.fileName(), errMsg));
+        }
+
+        bytesDone += itemSize;
+        int overallPercent = (int)(((double)(i + 1) / totalFiles) * 100.0);
+        qint64 elapsedMs = timer.elapsed();
+        double speedMBs = (elapsedMs > 50) ? ((double)bytesDone / (1024.0 * 1024.0)) / (elapsedMs / 1000.0) : 0.0;
+
+        emit batchProgress(overallPercent, speedMBs, bytesDone, totalBytes, i + 1, totalFiles);
+    }
+
+    QString summary;
+    if (totalFiles == 1) {
+        if (successCount == 1) {
+            summary = tr("Operation succeeded for %1!").arg(QFileInfo(m_inFiles.first()).fileName());
+        } else {
+            summary = tr("Operation failed for %1!").arg(QFileInfo(m_inFiles.first()).fileName());
         }
     } else {
-        QString errMsg;
-        switch (res) {
-            case XPC_ERR_MEMORY:
-                errMsg = "Memory allocation failure (could not allocate 64 MiB buffer)";
-                break;
-            case XPC_ERR_AUTH_FAILED:
-            case XPC_ERR_INVALID_PASS:
-                errMsg = "Authentication failed! Incorrect password or tampered file.";
-                break;
-            case XPC_ERR_FILE_IO:
-                errMsg = "File I/O error reading input or writing output file.";
-                break;
-            case XPC_ERR_INVALID_FORMAT:
-                errMsg = "Invalid XPC-3 file structure or corrupt header.";
-                break;
-            case XPC_ERR_DECOMPRESSION:
-                errMsg = "Decompression failed (corrupted payload).";
-                break;
-            default:
-                errMsg = tr("Cryptographic failure (Error code %1)").arg(res);
-                break;
-        }
-        emit logMessage(tr("❌ Error: %1").arg(errMsg));
-        emit workFinished(false, errMsg);
+        summary = tr("Batch completed!\nSuccessful: %1 / %2\nFailed: %3")
+                  .arg(successCount)
+                  .arg(totalFiles)
+                  .arg(failCount);
     }
+
+    emit logMessage(tr("🏁 Batch finished. %1 ok, %2 failed.").arg(successCount).arg(failCount));
+    emit workFinished(failCount == 0, summary);
 }

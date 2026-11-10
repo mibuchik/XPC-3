@@ -20,13 +20,13 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), m_isApplyingTheme(false), m_worker(nullptr) {
     setWindowTitle(tr("XPC-3"));
     setWindowIcon(QIcon(":/icon.png"));
-    resize(740, 690);
+    resize(760, 720);
     setAcceptDrops(true);
 
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     mainLayout->setContentsMargins(24, 24, 24, 24);
-    mainLayout->setSpacing(16);
+    mainLayout->setSpacing(14);
 
     // --- CARD HEADER ---
     QWidget *headerCard = new QWidget(this);
@@ -44,7 +44,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     QLabel *titleLabel = new QLabel(tr("XPC-3"), headerCard);
     titleLabel->setObjectName("titleLabel");
-    titleLabel->setStyleSheet("font-size: 20px; font-weight: 700; letter-spacing: -0.5px;");
 
     titleRow->addWidget(logoImgLabel);
     titleRow->addWidget(titleLabel);
@@ -52,7 +51,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     QLabel *descLabel = new QLabel(tr("Production-grade triple cascade file encryption powered by 64 MiB Memory-Hard XKDF."), headerCard);
     descLabel->setObjectName("descLabel");
-    descLabel->setStyleSheet("font-size: 13px; font-weight: 400;");
 
     // Badges Row
     QHBoxLayout *badgesLayout = new QHBoxLayout();
@@ -70,6 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     badgesLayout->addWidget(createBadge("🔒 AES-256-GCM"));
     badgesLayout->addWidget(createBadge("⚡ ChaCha20-Poly1305"));
     badgesLayout->addWidget(createBadge("🧠 64MB XKDF"));
+    badgesLayout->addWidget(createBadge("📦 Batch Queue"));
     badgesLayout->addStretch();
 
     headerLayout->addLayout(titleRow);
@@ -84,34 +83,45 @@ MainWindow::MainWindow(QWidget *parent)
     // --- ENCRYPT TAB ---
     QWidget *encTab = new QWidget();
     QVBoxLayout *encLayout = new QVBoxLayout(encTab);
-    encLayout->setContentsMargins(20, 20, 20, 20);
-    encLayout->setSpacing(14);
+    encLayout->setContentsMargins(18, 18, 18, 18);
+    encLayout->setSpacing(12);
 
-    m_encDropZone = new QLabel(tr("Drag & drop file or folder here, or click to browse"), encTab);
+    m_encDropZone = new QLabel(tr("Drag & drop file(s) or folder here, or click to browse"), encTab);
     m_encDropZone->setObjectName("shadcnDropZone");
     m_encDropZone->setAlignment(Qt::AlignCenter);
-    m_encDropZone->setFixedHeight(80);
+    m_encDropZone->setFixedHeight(72);
     encLayout->addWidget(m_encDropZone);
 
     QHBoxLayout *encInLayout = new QHBoxLayout();
     m_encInPath = new QLineEdit(encTab);
-    m_encInPath->setPlaceholderText(tr("Select file or folder to encrypt..."));
-    QPushButton *btnEncBrowse = new QPushButton(tr("File"), encTab);
+    m_encInPath->setPlaceholderText(tr("Select target file(s) or folder to encrypt..."));
+    QPushButton *btnEncBrowse = new QPushButton(tr("Files..."), encTab);
     btnEncBrowse->setObjectName("secondaryButton");
     btnEncBrowse->setCursor(Qt::PointingHandCursor);
 
-    QPushButton *btnEncFolderBrowse = new QPushButton(tr("Folder"), encTab);
+    QPushButton *btnEncFolderBrowse = new QPushButton(tr("Folder..."), encTab);
     btnEncFolderBrowse->setObjectName("secondaryButton");
     btnEncFolderBrowse->setCursor(Qt::PointingHandCursor);
+
+    m_encClearBtn = new QPushButton(tr("Clear"), encTab);
+    m_encClearBtn->setObjectName("ghostButton");
+    m_encClearBtn->setCursor(Qt::PointingHandCursor);
+    m_encClearBtn->setVisible(false);
 
     encInLayout->addWidget(m_encInPath);
     encInLayout->addWidget(btnEncBrowse);
     encInLayout->addWidget(btnEncFolderBrowse);
+    encInLayout->addWidget(m_encClearBtn);
     encLayout->addLayout(encInLayout);
+
+    // Adaptive Queue List (hidden until > 1 file selected)
+    m_encQueueList = new QListWidget(encTab);
+    m_encQueueList->setFixedHeight(100);
+    m_encQueueList->setVisible(false);
+    encLayout->addWidget(m_encQueueList);
 
     m_encOutHintLabel = new QLabel(tr("Destination: (select file or folder first)"), encTab);
     m_encOutHintLabel->setObjectName("hintLabel");
-    m_encOutHintLabel->setStyleSheet("font-size: 12px; font-weight: 500; font-family: monospace;");
     encLayout->addWidget(m_encOutHintLabel);
 
     QHBoxLayout *encPassLayout = new QHBoxLayout();
@@ -131,7 +141,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_encShredCheck->setChecked(false);
     encLayout->addWidget(m_encShredCheck);
 
-    m_encBtn = new QPushButton(tr("Encrypt Target"), encTab);
+    m_encBtn = new QPushButton(tr("Encrypt Targets"), encTab);
     m_encBtn->setObjectName("primaryButton");
     m_encBtn->setFixedHeight(42);
     m_encBtn->setCursor(Qt::PointingHandCursor);
@@ -142,28 +152,40 @@ MainWindow::MainWindow(QWidget *parent)
     // --- DECRYPT TAB ---
     QWidget *decTab = new QWidget();
     QVBoxLayout *decLayout = new QVBoxLayout(decTab);
-    decLayout->setContentsMargins(20, 20, 20, 20);
-    decLayout->setSpacing(14);
+    decLayout->setContentsMargins(18, 18, 18, 18);
+    decLayout->setSpacing(12);
 
-    m_decDropZone = new QLabel(tr("Drag and drop .xpc file here, or click to browse"), decTab);
+    m_decDropZone = new QLabel(tr("Drag and drop .xpc file(s) here, or click to browse"), decTab);
     m_decDropZone->setObjectName("shadcnDropZone");
     m_decDropZone->setAlignment(Qt::AlignCenter);
-    m_decDropZone->setFixedHeight(80);
+    m_decDropZone->setFixedHeight(72);
     decLayout->addWidget(m_decDropZone);
 
     QHBoxLayout *decInLayout = new QHBoxLayout();
     m_decInPath = new QLineEdit(decTab);
-    m_decInPath->setPlaceholderText(tr("Select .xpc file to decrypt..."));
-    QPushButton *btnDecBrowse = new QPushButton(tr("Browse"), decTab);
+    m_decInPath->setPlaceholderText(tr("Select .xpc file(s) to decrypt..."));
+    QPushButton *btnDecBrowse = new QPushButton(tr("Files..."), decTab);
     btnDecBrowse->setObjectName("secondaryButton");
     btnDecBrowse->setCursor(Qt::PointingHandCursor);
+
+    m_decClearBtn = new QPushButton(tr("Clear"), decTab);
+    m_decClearBtn->setObjectName("ghostButton");
+    m_decClearBtn->setCursor(Qt::PointingHandCursor);
+    m_decClearBtn->setVisible(false);
+
     decInLayout->addWidget(m_decInPath);
     decInLayout->addWidget(btnDecBrowse);
+    decInLayout->addWidget(m_decClearBtn);
     decLayout->addLayout(decInLayout);
+
+    // Adaptive Queue List (hidden until > 1 file selected)
+    m_decQueueList = new QListWidget(decTab);
+    m_decQueueList->setFixedHeight(100);
+    m_decQueueList->setVisible(false);
+    decLayout->addWidget(m_decQueueList);
 
     m_decOutHintLabel = new QLabel(tr("Destination: (select .xpc file first)"), decTab);
     m_decOutHintLabel->setObjectName("hintLabel");
-    m_decOutHintLabel->setStyleSheet("font-size: 12px; font-weight: 500; font-family: monospace;");
     decLayout->addWidget(m_decOutHintLabel);
 
     QHBoxLayout *decPassLayout = new QHBoxLayout();
@@ -183,7 +205,7 @@ MainWindow::MainWindow(QWidget *parent)
     m_decShredCheck->setChecked(false);
     decLayout->addWidget(m_decShredCheck);
 
-    m_decBtn = new QPushButton(tr("Decrypt File"), decTab);
+    m_decBtn = new QPushButton(tr("Decrypt Targets"), decTab);
     m_decBtn->setObjectName("primaryButton");
     m_decBtn->setFixedHeight(42);
     m_decBtn->setCursor(Qt::PointingHandCursor);
@@ -193,23 +215,30 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainLayout->addWidget(m_tabWidget);
 
+    // Speed & Progress status
+    m_speedLabel = new QLabel(this);
+    m_speedLabel->setObjectName("speedLabel");
+    m_speedLabel->setAlignment(Qt::AlignCenter);
+    m_speedLabel->setVisible(false);
+    mainLayout->addWidget(m_speedLabel);
+
     // Progress Bar
     m_progressBar = new QProgressBar(this);
-    m_progressBar->setRange(0, 0);
-    m_progressBar->setFixedHeight(4);
-    m_progressBar->setTextVisible(false);
+    m_progressBar->setRange(0, 100);
+    m_progressBar->setValue(0);
+    m_progressBar->setFixedHeight(16);
+    m_progressBar->setTextVisible(true);
     m_progressBar->setVisible(false);
     mainLayout->addWidget(m_progressBar);
 
     // Log Console Box
     QLabel *logLabel = new QLabel(tr("Console Output"), this);
     logLabel->setObjectName("consoleLabel");
-    logLabel->setStyleSheet("font-size: 12px; font-weight: 600;");
     mainLayout->addWidget(logLabel);
 
     m_logConsole = new QTextEdit(this);
     m_logConsole->setReadOnly(true);
-    m_logConsole->setFixedHeight(130);
+    m_logConsole->setFixedHeight(120);
     m_logConsole->setFont(QFont("Monospace", 9));
     mainLayout->addWidget(m_logConsole);
 
@@ -218,7 +247,10 @@ MainWindow::MainWindow(QWidget *parent)
     // Connections
     connect(btnEncBrowse, &QPushButton::clicked, this, &MainWindow::browseEncInput);
     connect(btnEncFolderBrowse, &QPushButton::clicked, this, &MainWindow::browseEncFolder);
+    connect(m_encClearBtn, &QPushButton::clicked, this, &MainWindow::clearEncQueue);
+
     connect(btnDecBrowse, &QPushButton::clicked, this, &MainWindow::browseDecInput);
+    connect(m_decClearBtn, &QPushButton::clicked, this, &MainWindow::clearDecQueue);
 
     connect(m_encShowPassBtn, &QPushButton::clicked, this, &MainWindow::toggleEncPassword);
     connect(m_decShowPassBtn, &QPushButton::clicked, this, &MainWindow::toggleDecPassword);
@@ -309,7 +341,6 @@ void MainWindow::applySystemTheme() {
 
     bool dark = isSystemDarkTheme();
 
-    // Style badges dynamically
     QString badgeCss = dark ?
         "background-color: rgba(0, 245, 184, 0.08); color: #00f5b8; border: 1px solid rgba(0, 245, 184, 0.3); border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 600;" :
         "background-color: #f1f5f9; color: #0f766e; border: 1px solid #cbd5e1; border-radius: 9999px; padding: 4px 12px; font-size: 11px; font-weight: 600;";
@@ -318,15 +349,15 @@ void MainWindow::applySystemTheme() {
         b->setStyleSheet(badgeCss);
     }
 
-    // Dynamic High-Tech Cyber Theme Stylesheet (Dark vs Light)
     QString qss = dark ? R"(
         QMainWindow { background-color: #0b0c10; }
         QWidget { color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         #shadcnCard { background-color: #12141d; border: 1px solid #1e2235; border-radius: 10px; }
         #titleLabel { color: #f8fafc; font-weight: 700; font-size: 20px; }
         #descLabel { color: #94a3b8; }
-        #hintLabel { color: #38bdf8; font-weight: 500; font-family: monospace; }
-        #consoleLabel { color: #94a3b8; }
+        #hintLabel { color: #38bdf8; font-weight: 500; font-family: monospace; font-size: 12px; }
+        #speedLabel { color: #00f5b8; font-weight: 600; font-family: monospace; font-size: 12px; }
+        #consoleLabel { color: #94a3b8; font-size: 12px; font-weight: 600; }
         #optionCheckBox { color: #94a3b8; font-size: 12px; font-weight: 500; spacing: 8px; }
         #optionCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; }
         #optionCheckBox::indicator:checked { background-color: #00f5b8; border: 1px solid #00f5b8; }
@@ -337,16 +368,19 @@ void MainWindow::applySystemTheme() {
         QTabBar::tab:selected { background-color: #1e2235; color: #00f5b8; }
         QLineEdit { background-color: #0b0c10; border: 1px solid #1e2235; border-radius: 6px; padding: 9px 12px; color: #f8fafc; font-size: 13px; }
         QLineEdit:focus { border: 1px solid #00f5b8; background-color: #0f1118; }
+        QListWidget { background-color: #08090d; border: 1px solid #1e2235; border-radius: 6px; color: #cbd5e1; font-size: 12px; padding: 4px; }
+        QListWidget::item { padding: 4px 8px; border-radius: 4px; }
+        QListWidget::item:selected { background-color: #1e2235; color: #00f5b8; }
         #primaryButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f5b8, stop:1 #02c39a); color: #050608; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; }
         #primaryButton:hover { background: #34d399; }
         #primaryButton:disabled { background-color: #1e2235; color: #475569; }
         #secondaryButton { background-color: #1a1e2b; color: #f8fafc; border: 1px solid #282f44; border-radius: 6px; font-weight: 600; padding: 0 14px; }
         #secondaryButton:hover { background-color: #242c3f; border-color: #38bdf8; }
-        #ghostButton { background-color: transparent; color: #94a3b8; border: 1px solid #1e2235; border-radius: 6px; }
+        #ghostButton { background-color: transparent; color: #94a3b8; border: 1px solid #1e2235; border-radius: 6px; padding: 0 12px; }
         #ghostButton:hover { background-color: #1e2235; color: #00f5b8; }
         QTextEdit { background-color: #08090d; border: 1px solid #1a1e2b; border-radius: 6px; color: #cbd5e1; padding: 10px; font-family: monospace; font-size: 12px; }
-        QProgressBar { background-color: #12141d; border-radius: 2px; height: 4px; }
-        QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f5b8, stop:1 #38bdf8); border-radius: 2px; }
+        QProgressBar { background-color: #12141d; border: 1px solid #1e2235; border-radius: 4px; text-align: center; color: #f8fafc; font-size: 11px; font-weight: 600; }
+        QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f5b8, stop:1 #38bdf8); border-radius: 3px; }
         QMenu { background-color: #12141d; color: #f8fafc; border: 1px solid #1e2235; padding: 4px; border-radius: 6px; }
         QMenu::item { padding: 6px 20px; border-radius: 4px; }
         QMenu::item:selected { background-color: #1e2235; color: #00f5b8; }
@@ -356,8 +390,9 @@ void MainWindow::applySystemTheme() {
         #shadcnCard { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; }
         #titleLabel { color: #0f172a; font-weight: 700; font-size: 20px; }
         #descLabel { color: #64748b; }
-        #hintLabel { color: #0284c7; font-weight: 500; font-family: monospace; }
-        #consoleLabel { color: #64748b; }
+        #hintLabel { color: #0284c7; font-weight: 500; font-family: monospace; font-size: 12px; }
+        #speedLabel { color: #0f766e; font-weight: 600; font-family: monospace; font-size: 12px; }
+        #consoleLabel { color: #64748b; font-size: 12px; font-weight: 600; }
         #optionCheckBox { color: #475569; font-size: 12px; font-weight: 500; spacing: 8px; }
         #optionCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #ffffff; }
         #optionCheckBox::indicator:checked { background-color: #0f766e; border: 1px solid #0f766e; }
@@ -368,16 +403,19 @@ void MainWindow::applySystemTheme() {
         QTabBar::tab:selected { background-color: #ffffff; color: #0f766e; }
         QLineEdit { background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px 12px; color: #0f172a; font-size: 13px; }
         QLineEdit:focus { border: 1px solid #0f766e; }
+        QListWidget { background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; color: #0f172a; font-size: 12px; padding: 4px; }
+        QListWidget::item { padding: 4px 8px; border-radius: 4px; }
+        QListWidget::item:selected { background-color: #f1f5f9; color: #0f766e; }
         #primaryButton { background-color: #0f766e; color: #ffffff; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; }
         #primaryButton:hover { background-color: #115e59; }
         #primaryButton:disabled { background-color: #e2e8f0; color: #94a3b8; }
         #secondaryButton { background-color: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; padding: 0 14px; }
         #secondaryButton:hover { background-color: #e2e8f0; }
-        #ghostButton { background-color: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 6px; }
+        #ghostButton { background-color: transparent; color: #64748b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0 12px; }
         #ghostButton:hover { background-color: #e2e8f0; color: #0f172a; }
         QTextEdit { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; color: #1e293b; padding: 10px; font-family: monospace; font-size: 12px; }
-        QProgressBar { background-color: #e2e8f0; border-radius: 2px; height: 4px; }
-        QProgressBar::chunk { background-color: #0f766e; border-radius: 2px; }
+        QProgressBar { background-color: #e2e8f0; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; color: #0f172a; font-size: 11px; font-weight: 600; }
+        QProgressBar::chunk { background-color: #0f766e; border-radius: 3px; }
         QMenu { background-color: #ffffff; color: #0f172a; border: 1px solid #e2e8f0; padding: 4px; border-radius: 6px; }
         QMenu::item { padding: 6px 20px; border-radius: 4px; }
         QMenu::item:selected { background-color: #f1f5f9; color: #0f766e; }
@@ -400,22 +438,128 @@ QString MainWindow::autoDecOutputPath(const QString &inPath) {
     if (p.endsWith(".xpc", Qt::CaseInsensitive)) {
         return p.left(p.length() - 4);
     }
+    if (p.endsWith(".xpc3", Qt::CaseInsensitive)) {
+        return p.left(p.length() - 5);
+    }
     return p + ".dec";
 }
 
-void MainWindow::updateEncOutputHint(const QString &inPath) {
-    if (inPath.trimmed().isEmpty()) {
+void MainWindow::setEncFiles(const QStringList &files) {
+    m_encFiles = files;
+    m_encQueueList->clear();
+
+    if (files.isEmpty()) {
+        m_encInPath->clear();
+        m_encQueueList->setVisible(false);
+        m_encClearBtn->setVisible(false);
+        updateEncOutputHint();
+    } else if (files.size() == 1) {
+        m_encInPath->setText(files.first());
+        m_encQueueList->setVisible(false);
+        m_encClearBtn->setVisible(true);
+        updateEncOutputHint();
+    } else {
+        m_encInPath->setText(tr("Queue: %1 items selected").arg(files.size()));
+        for (const QString &f : files) {
+            QFileInfo fi(f);
+            qint64 sz = fi.isDir() ? 0 : fi.size();
+            QString label = fi.isDir() ? tr("📁 [Folder] %1").arg(fi.fileName())
+                                       : tr("📄 %1 (%2 KB)").arg(fi.fileName()).arg(sz / 1024);
+            new QListWidgetItem(label, m_encQueueList);
+        }
+        m_encQueueList->setVisible(true);
+        m_encClearBtn->setVisible(true);
+        m_encOutHintLabel->setText(tr("Destination: %1 encrypted containers (*.xpc)").arg(files.size()));
+    }
+}
+
+void MainWindow::setDecFiles(const QStringList &files) {
+    m_decFiles = files;
+    m_decQueueList->clear();
+
+    if (files.isEmpty()) {
+        m_decInPath->clear();
+        m_decQueueList->setVisible(false);
+        m_decClearBtn->setVisible(false);
+        updateDecOutputHint();
+    } else if (files.size() == 1) {
+        m_decInPath->setText(files.first());
+        m_decQueueList->setVisible(false);
+        m_decClearBtn->setVisible(true);
+        updateDecOutputHint();
+    } else {
+        m_decInPath->setText(tr("Queue: %1 containers selected").arg(files.size()));
+        for (const QString &f : files) {
+            QFileInfo fi(f);
+            QString label = tr("🔒 %1 (%2 KB)").arg(fi.fileName()).arg(fi.size() / 1024);
+            new QListWidgetItem(label, m_decQueueList);
+        }
+        m_decQueueList->setVisible(true);
+        m_decClearBtn->setVisible(true);
+        m_decOutHintLabel->setText(tr("Destination: %1 decrypted outputs").arg(files.size()));
+    }
+}
+
+void MainWindow::clearEncQueue() {
+    setEncFiles(QStringList());
+}
+
+void MainWindow::clearDecQueue() {
+    setDecFiles(QStringList());
+}
+
+void MainWindow::updateEncOutputHint() {
+    if (m_encFiles.size() > 1) {
+        m_encOutHintLabel->setText(tr("Destination: %1 encrypted containers (*.xpc)").arg(m_encFiles.size()));
+        return;
+    }
+    QString inPath = m_encInPath->text().trimmed();
+    if (inPath.isEmpty()) {
         m_encOutHintLabel->setText(tr("Destination: (select file or folder first)"));
     } else {
         m_encOutHintLabel->setText(tr("Destination: %1").arg(autoEncOutputPath(inPath)));
     }
 }
 
-void MainWindow::updateDecOutputHint(const QString &inPath) {
-    if (inPath.trimmed().isEmpty()) {
+void MainWindow::updateDecOutputHint() {
+    if (m_decFiles.size() > 1) {
+        m_decOutHintLabel->setText(tr("Destination: %1 decrypted outputs").arg(m_decFiles.size()));
+        return;
+    }
+    QString inPath = m_decInPath->text().trimmed();
+    if (inPath.isEmpty()) {
         m_decOutHintLabel->setText(tr("Destination: (select .xpc file first)"));
     } else {
         m_decOutHintLabel->setText(tr("Destination: %1").arg(autoDecOutputPath(inPath)));
+    }
+}
+
+void MainWindow::handleInputPath(const QString &filePath) {
+    handleInputPaths(QStringList() << filePath);
+}
+
+void MainWindow::handleInputPaths(const QStringList &filePaths) {
+    if (filePaths.isEmpty()) return;
+
+    QStringList encList;
+    QStringList decList;
+
+    for (const QString &p : filePaths) {
+        if (p.endsWith(".xpc", Qt::CaseInsensitive) || p.endsWith(".xpc3", Qt::CaseInsensitive)) {
+            decList.append(p);
+        } else {
+            encList.append(p);
+        }
+    }
+
+    if (!decList.isEmpty() && encList.isEmpty()) {
+        m_tabWidget->setCurrentIndex(1);
+        setDecFiles(decList);
+        appendLog(tr("Loaded %1 container(s) for decryption.").arg(decList.size()));
+    } else {
+        m_tabWidget->setCurrentIndex(0);
+        setEncFiles(encList.isEmpty() ? filePaths : encList);
+        appendLog(tr("Loaded %1 target(s) for encryption.").arg(encList.isEmpty() ? filePaths.size() : encList.size()));
     }
 }
 
@@ -427,32 +571,36 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event) {
 
 void MainWindow::dropEvent(QDropEvent *event) {
     const QList<QUrl> urls = event->mimeData()->urls();
-    if (!urls.isEmpty()) {
-        QString filePath = urls.first().toLocalFile();
-        if (filePath.endsWith(".xpc", Qt::CaseInsensitive)) {
-            m_tabWidget->setCurrentIndex(1);
-            m_decInPath->setText(filePath);
-        } else {
-            m_tabWidget->setCurrentIndex(0);
-            m_encInPath->setText(filePath);
-        }
-        appendLog(tr("Target dropped: %1").arg(filePath));
+    if (urls.isEmpty()) return;
+
+    QStringList paths;
+    for (const QUrl &u : urls) {
+        QString local = u.toLocalFile();
+        if (!local.isEmpty()) paths.append(local);
     }
+
+    handleInputPaths(paths);
 }
 
 void MainWindow::browseEncInput() {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select File to Encrypt"));
-    if (!path.isEmpty()) m_encInPath->setText(path);
+    QStringList paths = QFileDialog::getOpenFileNames(this, tr("Select Files to Encrypt"));
+    if (!paths.isEmpty()) {
+        setEncFiles(paths);
+    }
 }
 
 void MainWindow::browseEncFolder() {
     QString path = QFileDialog::getExistingDirectory(this, tr("Select Directory to Encrypt"));
-    if (!path.isEmpty()) m_encInPath->setText(path);
+    if (!path.isEmpty()) {
+        setEncFiles(QStringList() << path);
+    }
 }
 
 void MainWindow::browseDecInput() {
-    QString path = QFileDialog::getOpenFileName(this, tr("Select .xpc File to Decrypt"), "", "XPC Files (*.xpc);;All Files (*)");
-    if (!path.isEmpty()) m_decInPath->setText(path);
+    QStringList paths = QFileDialog::getOpenFileNames(this, tr("Select .xpc Files to Decrypt"), "", "XPC Files (*.xpc *.xpc3);;All Files (*)");
+    if (!paths.isEmpty()) {
+        setDecFiles(paths);
+    }
 }
 
 void MainWindow::toggleEncPassword() {
@@ -467,28 +615,16 @@ void MainWindow::toggleDecPassword() {
     m_decShowPassBtn->setText(isPassword ? "🙈" : "👁");
 }
 
-void MainWindow::handleInputPath(const QString &filePath) {
-    if (filePath.isEmpty()) return;
-    if (filePath.endsWith(".xpc", Qt::CaseInsensitive) || filePath.endsWith(".xpc3", Qt::CaseInsensitive)) {
-        m_tabWidget->setCurrentIndex(1);
-        m_decInPath->setText(filePath);
-    } else {
-        m_tabWidget->setCurrentIndex(0);
-        m_encInPath->setText(filePath);
-    }
-    appendLog(tr("Target loaded from system: %1").arg(filePath));
-}
-
 void MainWindow::appendLog(const QString &msg) {
     QString timeStr = QDateTime::currentDateTime().toString("hh:mm:ss");
     QString formattedMsg = msg;
-    if (msg.startsWith("✨") || msg.contains("completed successfully", Qt::CaseInsensitive) || msg.contains("succeeded", Qt::CaseInsensitive)) {
+    if (msg.startsWith("✨") || msg.contains("completed successfully", Qt::CaseInsensitive) || msg.contains("success", Qt::CaseInsensitive) || msg.contains("ok", Qt::CaseInsensitive)) {
         formattedMsg = QString("<span style='color:#00f5b8; font-weight:600;'>%1</span>").arg(msg);
     } else if (msg.startsWith("❌") || msg.contains("error", Qt::CaseInsensitive) || msg.contains("failed", Qt::CaseInsensitive)) {
         formattedMsg = QString("<span style='color:#f87171; font-weight:600;'>%1</span>").arg(msg);
     } else if (msg.startsWith("⚠️") || msg.contains("warning", Qt::CaseInsensitive)) {
         formattedMsg = QString("<span style='color:#fbbf24;'>%1</span>").arg(msg);
-    } else if (msg.startsWith("🧠") || msg.startsWith("🚀") || msg.startsWith("📦")) {
+    } else if (msg.startsWith("🧠") || msg.startsWith("🚀") || msg.startsWith("📦") || msg.startsWith("🔹")) {
         formattedMsg = QString("<span style='color:#38bdf8;'>%1</span>").arg(msg);
     } else if (msg.startsWith("🗑️") || msg.startsWith("💾")) {
         formattedMsg = QString("<span style='color:#c084fc;'>%1</span>").arg(msg);
@@ -497,68 +633,120 @@ void MainWindow::appendLog(const QString &msg) {
 }
 
 void MainWindow::startEncryption() {
-    QString inFile = m_encInPath->text().trimmed();
-    QString outFile = autoEncOutputPath(inFile);
-    QString pass = m_encPassword->text();
-
-    if (inFile.isEmpty() || pass.isEmpty()) {
-        QMessageBox::warning(this, tr("Input Required"), tr("Please select a target file and enter a passphrase."));
-        return;
+    QStringList targets = m_encFiles;
+    if (targets.isEmpty()) {
+        QString single = m_encInPath->text().trimmed();
+        if (!single.isEmpty()) targets.append(single);
     }
 
-    if (!QFileInfo::exists(inFile)) {
-        QMessageBox::critical(this, "File Not Found", tr("Target file does not exist:\n%1").arg(inFile));
+    QString pass = m_encPassword->text();
+
+    if (targets.isEmpty() || pass.isEmpty()) {
+        QMessageBox::warning(this, tr("Input Required"), tr("Please select at least one target file and enter a passphrase."));
         return;
     }
 
     m_encBtn->setEnabled(false);
     m_decBtn->setEnabled(false);
     m_progressBar->setVisible(true);
+    m_progressBar->setValue(0);
+    m_speedLabel->setVisible(true);
+    m_speedLabel->setText(tr("⚡ Preparing XKDF memory pass (64 MiB RAM)..."));
 
     bool shred = m_encShredCheck->isChecked();
-    m_worker = new CryptoWorker(true, inFile, outFile, pass, shred, this);
+    m_worker = new CryptoWorker(true, targets, pass, shred, this);
+    connect(m_worker, &CryptoWorker::batchProgress, this, &MainWindow::onBatchProgress);
+    connect(m_worker, &CryptoWorker::itemStarted, this, &MainWindow::onItemStarted);
+    connect(m_worker, &CryptoWorker::itemFinished, this, &MainWindow::onItemFinished);
     connect(m_worker, &CryptoWorker::logMessage, this, &MainWindow::appendLog);
     connect(m_worker, &CryptoWorker::workFinished, this, &MainWindow::handleFinished);
     m_worker->start();
 }
 
 void MainWindow::startDecryption() {
-    QString inFile = m_decInPath->text().trimmed();
-    QString outFile = autoDecOutputPath(inFile);
-    QString pass = m_decPassword->text();
-
-    if (inFile.isEmpty() || pass.isEmpty()) {
-        QMessageBox::warning(this, tr("Input Required"), tr("Please select an encrypted .xpc file and enter a passphrase."));
-        return;
+    QStringList targets = m_decFiles;
+    if (targets.isEmpty()) {
+        QString single = m_decInPath->text().trimmed();
+        if (!single.isEmpty()) targets.append(single);
     }
 
-    if (!QFileInfo::exists(inFile)) {
-        QMessageBox::critical(this, "File Not Found", tr("Selected .xpc file does not exist:\n%1").arg(inFile));
+    QString pass = m_decPassword->text();
+
+    if (targets.isEmpty() || pass.isEmpty()) {
+        QMessageBox::warning(this, tr("Input Required"), tr("Please select at least one .xpc file and enter a passphrase."));
         return;
     }
 
     m_encBtn->setEnabled(false);
     m_decBtn->setEnabled(false);
     m_progressBar->setVisible(true);
+    m_progressBar->setValue(0);
+    m_speedLabel->setVisible(true);
+    m_speedLabel->setText(tr("⚡ Preparing XKDF memory pass (64 MiB RAM)..."));
 
     bool shred = m_decShredCheck->isChecked();
-    m_worker = new CryptoWorker(false, inFile, outFile, pass, shred, this);
+    m_worker = new CryptoWorker(false, targets, pass, shred, this);
+    connect(m_worker, &CryptoWorker::batchProgress, this, &MainWindow::onBatchProgress);
+    connect(m_worker, &CryptoWorker::itemStarted, this, &MainWindow::onItemStarted);
+    connect(m_worker, &CryptoWorker::itemFinished, this, &MainWindow::onItemFinished);
     connect(m_worker, &CryptoWorker::logMessage, this, &MainWindow::appendLog);
     connect(m_worker, &CryptoWorker::workFinished, this, &MainWindow::handleFinished);
     m_worker->start();
 }
 
+void MainWindow::onBatchProgress(int percent, double speedMBs, qint64 bytesDone, qint64 totalBytes, int itemsDone, int totalItems) {
+    m_progressBar->setValue(percent);
+    QString speedStr = QString::number(speedMBs, 'f', 1);
+    QString doneMB = QString::number(bytesDone / (1024.0 * 1024.0), 'f', 1);
+    QString totalMB = QString::number(totalBytes / (1024.0 * 1024.0), 'f', 1);
+
+    m_speedLabel->setText(tr("⚡ %1 MB/s | %2/%3 items (%4 / %5 MB) | %6%")
+                          .arg(speedStr)
+                          .arg(itemsDone)
+                          .arg(totalItems)
+                          .arg(doneMB)
+                          .arg(totalMB)
+                          .arg(percent));
+}
+
+void MainWindow::onItemStarted(int index, const QString &filePath) {
+    QListWidget *list = (m_tabWidget->currentIndex() == 0) ? m_encQueueList : m_decQueueList;
+    if (index >= 0 && index < list->count()) {
+        QListWidgetItem *item = list->item(index);
+        item->setText(tr("⏳ [Processing...] %1").arg(QFileInfo(filePath).fileName()));
+        item->setForeground(QColor("#38bdf8"));
+        list->scrollToItem(item);
+    }
+}
+
+void MainWindow::onItemFinished(int index, bool success, const QString &message) {
+    QListWidget *list = (m_tabWidget->currentIndex() == 0) ? m_encQueueList : m_decQueueList;
+    if (index >= 0 && index < list->count()) {
+        QListWidgetItem *item = list->item(index);
+        if (success) {
+            item->setText(tr("✅ [Done] %1").arg(item->text().section(" ", 2)));
+            item->setForeground(QColor("#00f5b8"));
+        } else {
+            item->setText(tr("❌ [%1] %2").arg(message, item->text().section(" ", 2)));
+            item->setForeground(QColor("#f87171"));
+        }
+    }
+}
+
 void MainWindow::handleFinished(bool success, const QString &message) {
     m_encBtn->setEnabled(true);
     m_decBtn->setEnabled(true);
+    m_speedLabel->setVisible(false);
     m_progressBar->setVisible(false);
 
     if (success) {
-        QMessageBox::information(this, "Success", message);
+        QMessageBox::information(this, tr("Success"), message);
     } else {
-        QMessageBox::critical(this, "Error", message);
+        QMessageBox::warning(this, tr("Completed with Alerts"), message);
     }
 
-    m_worker->deleteLater();
-    m_worker = nullptr;
+    if (m_worker) {
+        m_worker->deleteLater();
+        m_worker = nullptr;
+    }
 }

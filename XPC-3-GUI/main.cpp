@@ -51,9 +51,15 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     if (argc > 1) {
-        QString argPath = QString::fromLocal8Bit(argv[1]);
-        if (!argPath.startsWith("-")) {
-            w.handleInputPath(argPath);
+        QStringList args;
+        for (int i = 1; i < argc; ++i) {
+            QString p = QString::fromLocal8Bit(argv[i]);
+            if (!p.startsWith("-")) {
+                args.append(p);
+            }
+        }
+        if (!args.isEmpty()) {
+            w.handleInputPaths(args);
         }
     }
     w.show();
